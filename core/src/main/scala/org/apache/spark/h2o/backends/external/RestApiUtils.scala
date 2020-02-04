@@ -19,7 +19,7 @@ package org.apache.spark.h2o.backends.external
 
 import java.io.{File, InputStream}
 import java.net.URI
-import java.text.SimpleDateFormat
+import java.text.{MessageFormat, SimpleDateFormat}
 import java.util.Date
 
 import ai.h2o.sparkling.extensions.rest.api.Paths
@@ -36,6 +36,39 @@ trait RestApiUtils extends RestCommunication {
 
   def isRestAPIBased(hc: Option[H2OContext] = None): Boolean = {
     hc.getOrElse(H2OContext.ensure()).getConf.get("spark.ext.h2o.rest.api.based.client", "false") == "true"
+  }
+
+  def convertAllStringVecToCategorical(conf: H2OConf, frameId: String): H2OFrame = {
+    val fr = getFrame(conf, frameId)
+    val columns = fr.columns.filter(_.dataType == H2OColumnType.string).map(_.name)
+    convertColumnsToCategorical(conf, frameId, columns)
+  }
+
+  def convertColumnsToCategorical(conf: H2OConf, frameId: String, columns: Array[String]): H2OFrame = {
+    val endpoint = getClusterEndpoint(conf)
+    val fr = getFrame(conf, frameId)
+    val indices = fr.columns.map(_.name).zipWithIndex.toMap
+    val selectedIndices = columns.map { name =>
+      indices.getOrElse(name, s"Column $name does not exist in the frame $frameId")
+    }
+    val params = Map(
+      "ast" -> MessageFormat.format(s"( assign {0} (:= {0} (as.factor (cols {0} {1})) {1} []))", frameId, RestCommunication.decodeArray(selectedIndices))
+    )
+    val rapidsFrameV3 = update[RapidsFrameV3](endpoint, "99/Rapids", conf, params)
+    getFrame(conf, rapidsFrameV3.key.name)
+  }
+
+  def splitFrameToTrainAndValidationFrames(conf: H2OConf, frameId: String, splitRatio: Double): Array[H2OFrame] = {
+    if (splitRatio >= 1.0) {
+      throw new IllegalArgumentException("Split ratio must be lower than 1.0")
+    }
+    val endpoint = getClusterEndpoint(conf)
+    val params = Map(
+      "ratios" -> Array(splitRatio),
+      "dataset" -> frameId
+    )
+    val splitFrameV3 = update[SplitFrameV3](endpoint, "3/SplitFrame", conf, params)
+    splitFrameV3.destination_frames.map(frameKey => getFrame(conf, frameKey.name))
   }
 
   def lockCloud(conf: H2OConf): Unit = {
