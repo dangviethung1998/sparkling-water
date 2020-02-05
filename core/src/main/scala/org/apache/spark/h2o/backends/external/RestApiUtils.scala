@@ -17,8 +17,8 @@
 
 package org.apache.spark.h2o.backends.external
 
-import java.io.{File, InputStream}
-import java.net.URI
+import java.io.{File, InputStream, OutputStream}
+import java.net.{HttpURLConnection, URI}
 import java.text.SimpleDateFormat
 import java.util.Date
 
@@ -145,6 +145,27 @@ trait RestApiUtils extends RestCommunication {
 
     val endpoint = resolveNodeEndpoint(node, conf)
     readURLContent(endpoint, "GET", Paths.CHUNK, conf, parameters)
+  }
+
+  def putChunk(
+      node: NodeDesc,
+      conf : H2OConf,
+      frameName: String,
+      chunkId: Int,
+      expectedTypes: Array[Byte],
+      maxVecSizes: Array[Int]): OutputStream = {
+    val expectedTypesString = Base64Encoding.encode(expectedTypes)
+    val maxVecSizesString = Base64Encoding.encode(maxVecSizes)
+
+    val parameters = Map[String, String](
+      "frame_name" -> frameName,
+      "chunk_id" -> chunkId.toString,
+      "expected_types" -> expectedTypesString,
+      "max_vector_sizes" -> maxVecSizesString)
+    val query = Paths.CHUNK + parameters.map{ case (k, v) => s"$k=$v" }.mkString("?", "&", "")
+
+    val endpoint = resolveNodeEndpoint(node, conf)
+    insert(endpoint, query, conf)
   }
 
   private def convertColumn(sourceColumn: ColV3): H2OColumn = {
