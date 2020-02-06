@@ -161,7 +161,7 @@ trait RestApiUtils extends RestCommunication {
       "frame_name" -> frameName,
       "chunk_id" -> chunkId.toString,
       "expected_types" -> expectedTypesString,
-      "max_vector_sizes" -> maxVecSizesString)
+      "maximum_vector_sizes" -> maxVecSizesString)
     val query = Paths.CHUNK + parameters.map{ case (k, v) => s"$k=$v" }.mkString("?", "&", "")
 
     val endpoint = resolveNodeEndpoint(node, conf)
