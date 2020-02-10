@@ -162,10 +162,9 @@ trait RestApiUtils extends RestCommunication {
       "chunk_id" -> chunkId.toString,
       "expected_types" -> expectedTypesString,
       "maximum_vector_sizes" -> maxVecSizesString)
-    val query = Paths.CHUNK + parameters.map{ case (k, v) => s"$k=$v" }.mkString("?", "&", "")
 
     val endpoint = resolveNodeEndpoint(node, conf)
-    insert(endpoint, query, conf)
+    insert(endpoint, Paths.CHUNK, conf, parameters)
   }
 
   private def convertColumn(sourceColumn: ColV3): H2OColumn = {
