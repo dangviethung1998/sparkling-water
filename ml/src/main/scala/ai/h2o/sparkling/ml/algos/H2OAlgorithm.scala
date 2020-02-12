@@ -21,6 +21,7 @@ import ai.h2o.sparkling.ml.params.H2OAlgoCommonParams
 import hex.Model
 import org.apache.spark.annotation.DeveloperApi
 import org.apache.spark.h2o._
+import org.apache.spark.h2o.backends.external.RestApiUtils
 import org.apache.spark.ml.Estimator
 import org.apache.spark.ml.param.ParamMap
 import org.apache.spark.ml.util._
@@ -53,12 +54,19 @@ abstract class H2OAlgorithm[B <: H2OBaseModelBuilder : ClassTag, M <: H2OBaseMod
     water.DKV.put(trainFrame)
     
     // Train
-    val binaryModel: H2OBaseModel = trainModel(parameters)
-    val mojoData = ModelSerializationSupport.getMojoData(binaryModel)
+
+    val hc = H2OContext.ensure()
+    val (mojoData, algoName) = if (RestApiUtils.isRestAPIBased(Some(hc))) {
+      val model = RestApiUtils.trainModel(hc.getConf, extractParamMap())
+      (RestApiUtils.downloadMOJOData(hc.getConf, model), model.algoName)
+    } else {
+      val binaryModel = trainModel(parameters)
+      (ModelSerializationSupport.getMojoData(binaryModel), binaryModel._parms.algoName())
+    }
     val modelSettings = H2OMOJOSettings.createFromModelParams(this)
     H2OMOJOModel.createFromMojo(
       mojoData,
-      Identifiable.randomUID(binaryModel._parms.algoName()),
+      Identifiable.randomUID(algoName),
       modelSettings,
       internalFeatureCols)
   }

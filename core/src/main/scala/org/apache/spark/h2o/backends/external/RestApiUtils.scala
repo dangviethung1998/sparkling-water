@@ -24,10 +24,12 @@ import java.util.Date
 
 import ai.h2o.sparkling.extensions.rest.api.Paths
 import ai.h2o.sparkling.frame.{H2OChunk, H2OColumn, H2OColumnType, H2OFrame}
+import ai.h2o.sparkling.model.H2OModel
 import ai.h2o.sparkling.utils.Base64Encoding
 import org.apache.http.client.utils.URIBuilder
 import org.apache.spark.h2o.utils.NodeDesc
 import org.apache.spark.h2o.{H2OConf, H2OContext}
+import org.apache.spark.ml.param.ParamMap
 import water.api.schemas3.FrameChunksV3.FrameChunkV3
 import water.api.schemas3.FrameV3.ColV3
 import water.api.schemas3._
@@ -36,6 +38,14 @@ trait RestApiUtils extends RestCommunication {
 
   def isRestAPIBased(hc: Option[H2OContext] = None): Boolean = {
     hc.getOrElse(H2OContext.ensure()).getConf.get("spark.ext.h2o.rest.api.based.client", "false") == "true"
+  }
+
+  def trainModel(conf: H2OConf, params: ParamMap): H2OModel = {
+    throw new UnsupportedOperationException
+  }
+
+  def downloadMOJOData(conf: H2OConf, model: H2OModel): Array[Byte] = {
+    throw new UnsupportedOperationException
   }
 
   def lockCloud(conf: H2OConf): Unit = {
