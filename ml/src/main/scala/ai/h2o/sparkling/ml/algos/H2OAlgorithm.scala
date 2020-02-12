@@ -38,7 +38,7 @@ import scala.reflect.{ClassTag, classTag}
 abstract class H2OAlgorithm[B <: H2OBaseModelBuilder : ClassTag, M <: H2OBaseModel, P <: Model.Parameters : ClassTag]
   extends Estimator[H2OMOJOModel] with H2OAlgoCommonUtils with DefaultParamsWritable with H2OAlgoCommonParams[P] {
 
-  protected def preProcessBeforeFit(trainFrame: Frame): Unit = {}
+  protected def preProcessBeforeFit(trainFrameKey: String): Unit = {}
 
   override def fit(dataset: Dataset[_]): H2OMOJOModel = {
     // Update H2O params based on provided configuration
@@ -49,7 +49,7 @@ abstract class H2OAlgorithm[B <: H2OBaseModelBuilder : ClassTag, M <: H2OBaseMod
     parameters._valid = validKey.map(DKV.getGet[Frame](_)._key).orNull
 
     val trainFrame = parameters._train.get()
-    preProcessBeforeFit(trainFrame)
+    preProcessBeforeFit(trainFrame._key.toString)
     water.DKV.put(trainFrame)
     
     // Train
